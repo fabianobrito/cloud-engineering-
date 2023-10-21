@@ -1,0 +1,49 @@
+service: projeto-final
+
+frameworkVersion: '3'
+plugins:
+  - serverless-pseudo-parameters
+package:
+  exclude:
+    - layer/**
+layers:
+  LayerDependencies:
+    path: layer
+    description: "Learing Layer"
+provider:
+  name: aws
+  runtime: python3.9
+  lambdaHashingVersion: 20230920
+  region: 'us-east-1'
+  memorySize: 256
+  iam:
+    role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
+  eventBridge:
+    useCloudFormation: true
+
+functions:
+  gravaEventos:
+    handler: handler.gravaEventosHandler
+    layers:
+      - {Ref: LayerDependenciesLambdaLayer}
+    events:
+      - eventBridge:
+          eventBus:
+            - arn:aws:events:us-east-1:${AWS::AccountId}:event-bus/pizzaria
+          pattern:
+            source:
+              - com.pizza.status
+  enviarParaSQS:
+    handler: handler1.enviarParaSQSHandler
+    events:
+      - eventBridge:
+          eventBus:
+            - arn:aws:events:us-east-1:${AWS::AccountId}:event-bus/pizzaria
+          pattern:
+            source:
+              - com.pizza.status
+            detail:
+              status:
+                - pronto
+  entregues:
+    handler: handler2.entreguesHandler
